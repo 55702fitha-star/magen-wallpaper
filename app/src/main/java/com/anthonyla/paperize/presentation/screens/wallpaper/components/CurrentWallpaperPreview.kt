@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -65,34 +67,48 @@ import kotlin.math.min
  *
  * Android's WallpaperManager writes wallpapers to disk asynchronously after setBitmap() returns.
  * The encoding process can take 1-2 seconds, during which time reading the wallpaper back will
- * fail with ImageDecoder.DecodeException. This helper retries with increasing delays to allow
- * the system time to complete encoding.
+ * fail with ImageDecoder.DecodeException OR return null. This helper retries with increasing
+ * delays to allow the system time to complete encoding.
  *
- * @param maxAttempts Maximum number of retry attempts (default 4)
- * @param delayMs Initial delay in milliseconds between retries (default 500ms)
+ * IMPORTANT FIX: Now also retries when getDrawable() returns null (which happens when the
+ * wallpaper is still being encoded by the system).
+ *
+ * @param maxAttempts Maximum number of retry attempts (default 6)
+ * @param delayMs Initial delay in milliseconds between retries (default 300ms)
  * @param block The operation to retry
  * @return The result of the operation, or null if all attempts fail
  */
 private suspend fun <T> retryWallpaperRead(
-    maxAttempts: Int = 4,
-    delayMs: Long = Constants.WALLPAPER_READ_INITIAL_DELAY_MS,
-    block: suspend () -> T
+    maxAttempts: Int = 6,
+    delayMs: Long = 300L,
+    block: suspend () -> T?
 ): T? {
     var lastException: Exception? = null
 
     repeat(maxAttempts) { attempt ->
         try {
-            return block()
+            val result = block()
+            if (result != null) {
+                return result
+            }
+            // null result - wallpaper not yet available, retry after delay
+            lastException = null
+            if (attempt < maxAttempts - 1) {
+                delay(delayMs * (attempt + 1))
+            }
         } catch (e: android.graphics.ImageDecoder.DecodeException) {
             lastException = e
-            // Only delay if we have more attempts left
             if (attempt < maxAttempts - 1) {
-                // Exponential backoff: 500ms, 1000ms, 1500ms, 2000ms
                 delay(delayMs * (attempt + 1))
             }
         } catch (e: Exception) {
-            // For non-decode exceptions, don't retry
-            return null
+            // For non-decode exceptions, retry a couple times then give up
+            lastException = e
+            if (attempt < 2) {
+                delay(delayMs * (attempt + 1))
+            } else {
+                return null
+            }
         }
     }
 
@@ -102,6 +118,8 @@ private suspend fun <T> retryWallpaperRead(
 
 /**
  * Displays current home and lock screen wallpapers
+ *
+ * Layout: Home screen on the LEFT, Lock screen on the RIGHT.
  *
  * Automatically updates when wallpapers change using WallpaperManager.OnColorsChangedListener.
  * This allows the preview to stay in sync with system wallpaper changes from any source
@@ -129,27 +147,21 @@ fun CurrentWallpaperPreview(
     var isLoading by remember { mutableStateOf(true) }
 
     // Calculate appropriate aspect ratio based on device screen
-    // Use actual screen dimensions for accurate wallpaper preview
     val screenAspectRatio = remember(configuration) {
         val screenWidth = configuration.screenWidthDp.toFloat()
         val screenHeight = configuration.screenHeightDp.toFloat()
-        // Use the shorter dimension as width for portrait-oriented preview
         val aspectRatio = min(screenWidth, screenHeight) / kotlin.math.max(screenWidth, screenHeight)
         aspectRatio
     }
 
     // Listen for wallpaper changes with debouncing
-    // When both home and lock wallpapers are set, the listener fires twice.
-    // Debouncing prevents multiple rapid refreshes that can cause UI flashing.
     DisposableEffect(Unit) {
         val wallpaperManager = WallpaperManager.getInstance(context)
         val handler = Handler(Looper.getMainLooper())
         val listener = WallpaperManager.OnColorsChangedListener { _, _ ->
-            // Mark that a refresh is pending instead of triggering immediately
             pendingRefresh = true
         }
 
-        // Register listener for both home and lock screen wallpaper changes
         wallpaperManager.addOnColorsChangedListener(listener, handler)
 
         onDispose {
@@ -157,13 +169,10 @@ fun CurrentWallpaperPreview(
         }
     }
 
-    // Debounced refresh effect
-    // Waits 2 seconds after the last wallpaper change before refreshing
-    // This ensures both home and lock wallpaper changes complete before preview updates
+    // Reduced debounce from 2000ms to 500ms for faster preview updates
     LaunchedEffect(pendingRefresh) {
         if (pendingRefresh) {
-            delay(Constants.WALLPAPER_CHANGE_DEBOUNCE_MS)
-            // Atomically update state to prevent race conditions
+            delay(500L)
             pendingRefresh = false
             refreshTrigger++
         }
@@ -171,7 +180,6 @@ fun CurrentWallpaperPreview(
 
     // Fetch wallpapers on initial load and when refreshTrigger changes
     LaunchedEffect(refreshTrigger) {
-        // Only set loading on initial load, not on refresh
         if (refreshTrigger == 0) {
             isLoading = true
         }
@@ -180,21 +188,19 @@ fun CurrentWallpaperPreview(
             try {
                 val wallpaperManager = WallpaperManager.getInstance(context)
 
-                // API 34+ has getDrawable(int which), earlier versions use getDrawable()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    // Get home screen wallpaper with retry logic
+                    // API 34+: Use getDrawable(WallpaperManager.FLAG_SYSTEM/FLAG_LOCK)
                     val homeDrawable = retryWallpaperRead {
                         wallpaperManager.getDrawable(WallpaperManager.FLAG_SYSTEM)
                     }
 
-                    // Get lock screen wallpaper with retry logic
                     val lockDrawable = retryWallpaperRead {
                         wallpaperManager.getDrawable(WallpaperManager.FLAG_LOCK)
                     } ?: homeDrawable
 
                     Triple(homeDrawable, lockDrawable, true)
                 } else {
-                    // For API [31-33], use getDrawable() which returns the current wallpaper
+                    // For API 31-33, use getDrawable() which returns the current wallpaper
                     val drawable = retryWallpaperRead {
                         wallpaperManager.drawable
                     }
@@ -203,11 +209,9 @@ fun CurrentWallpaperPreview(
             } catch (e: SecurityException) {
                 Triple(null, null, false)
             } catch (e: Exception) {
-                // Handle other exceptions silently
                 Triple(null, null, true)
             }
         }
-        // Update state on main thread
         homeWallpaper = home
         lockWallpaper = lock
         hasPermission = hasAccess
@@ -219,12 +223,10 @@ fun CurrentWallpaperPreview(
         return
     }
 
-    // Always render the Card with reserved space to prevent layout jumping
-    // Constrain max width for tablets following Material 3 responsive design
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = AppMaxWidths.contentMaxWidth)  // Material 3 guideline: max content width on large screens
+            .widthIn(max = AppMaxWidths.contentMaxWidth)
             .padding(horizontal = AppSpacing.small, vertical = AppSpacing.extraSmall),
         shape = AppShapes.cardShape,
         colors = CardDefaults.cardColors(
@@ -249,22 +251,24 @@ fun CurrentWallpaperPreview(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.medium)
             ) {
-                // Lock wallpaper preview (on the left)
-                WallpaperPreviewBox(
-                    wallpaper = lockWallpaper,
-                    isLoading = isLoading,
-                    aspectRatio = screenAspectRatio,
-                    contentDescription = stringResource(R.string.content_desc_current_lock_wallpaper),
-                    animate = animate,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Home wallpaper preview (on the right)
+                // Home wallpaper preview (on the LEFT)
                 WallpaperPreviewBox(
                     wallpaper = homeWallpaper,
                     isLoading = isLoading,
                     aspectRatio = screenAspectRatio,
+                    label = stringResource(R.string.home),
                     contentDescription = stringResource(R.string.content_desc_current_home_wallpaper),
+                    animate = animate,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Lock wallpaper preview (on the RIGHT)
+                WallpaperPreviewBox(
+                    wallpaper = lockWallpaper,
+                    isLoading = isLoading,
+                    aspectRatio = screenAspectRatio,
+                    label = stringResource(R.string.lock),
+                    contentDescription = stringResource(R.string.content_desc_current_lock_wallpaper),
                     animate = animate,
                     modifier = Modifier.weight(1f)
                 )
@@ -274,62 +278,99 @@ fun CurrentWallpaperPreview(
 }
 
 /**
- * Displays a single wallpaper preview with smooth fade animation
- *
- * Uses device screen aspect ratio for accurate representation and placeholder
- * background to prevent layout jumping during loading.
+ * Displays a single wallpaper preview with label, loading indicator, and smooth fade animation
  */
 @Composable
 private fun WallpaperPreviewBox(
     wallpaper: Drawable?,
     isLoading: Boolean,
     aspectRatio: Float,
+    label: String,
     contentDescription: String,
     animate: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
-    Box(
-        modifier = modifier
-            .aspectRatio(aspectRatio)
-            .border(
-                width = AppBorderWidths.thick,
-                color = Color.Black,
-                shape = AppShapes.imageShape
-            )
-            .clip(AppShapes.imageShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AnimatedVisibility(
-            visible = !isLoading && wallpaper != null,
-            enter = if (animate) {
-                fadeIn(animationSpec = tween(Constants.PERMISSION_SCREEN_TRANSITION_DELAY_MS.toInt()))
-            } else {
-                fadeIn(animationSpec = tween(0))
-            },
-            exit = if (animate) {
-                fadeOut(animationSpec = tween(Constants.PERMISSION_SCREEN_TRANSITION_DELAY_MS.toInt()))
-            } else {
-                fadeOut(animationSpec = tween(0))
-            }
+        Box(
+            modifier = Modifier
+                .aspectRatio(aspectRatio)
+                .border(
+                    width = AppBorderWidths.thick,
+                    color = Color.Black,
+                    shape = AppShapes.imageShape
+                )
+                .clip(AppShapes.imageShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
         ) {
-            wallpaper?.let { drawable ->
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(drawable)
-                        .size(Size(Constants.PREVIEW_THUMBNAIL_WIDTH, Constants.PREVIEW_THUMBNAIL_HEIGHT))  // Limit size for performance - suitable for preview
-                        .crossfade(true)
-                        .memoryCachePolicy(coil3.request.CachePolicy.DISABLED)  // Don't cache in memory (already in drawable)
-                        .diskCachePolicy(coil3.request.CachePolicy.DISABLED)    // Don't cache on disk (already system-managed)
-                        .build(),
-                    contentDescription = contentDescription,
-                    contentScale = ContentScale.Crop,
+            // Show loading indicator while loading
+            if (isLoading) {
+                LinearProgressIndicator(
                     modifier = Modifier
-                        .matchParentSize()
-                        .zoomable(rememberZoomState())
+                        .fillMaxWidth()
+                        .padding(horizontal = AppSpacing.medium)
+                )
+            }
+
+            // Use general AnimatedVisibility (not ColumnScope version)
+            if (!isLoading && wallpaper != null) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = true,
+                    enter = if (animate) {
+                        fadeIn(animationSpec = tween(300))
+                    } else {
+                        fadeIn(animationSpec = tween(0))
+                    },
+                    exit = if (animate) {
+                        fadeOut(animationSpec = tween(300))
+                    } else {
+                        fadeOut(animationSpec = tween(0))
+                    },
+                    modifier = Modifier.matchParentSize()
+                ) {
+                    wallpaper?.let { drawable ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(drawable)
+                                .size(Size(Constants.PREVIEW_THUMBNAIL_WIDTH, Constants.PREVIEW_THUMBNAIL_HEIGHT))
+                                .crossfade(true)
+                                .memoryCachePolicy(coil3.request.CachePolicy.DISABLED)
+                                .diskCachePolicy(coil3.request.CachePolicy.DISABLED)
+                                .build(),
+                            contentDescription = contentDescription,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .zoomable(rememberZoomState())
+                        )
+                    }
+                }
+            }
+
+            // Show "no wallpaper" text when not loading and wallpaper is null
+            if (!isLoading && wallpaper == null) {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
+
+        // Label below the preview
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = AppSpacing.extraSmall),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

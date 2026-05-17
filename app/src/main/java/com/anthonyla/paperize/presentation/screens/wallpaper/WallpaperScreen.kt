@@ -163,98 +163,14 @@ fun WallpaperScreen(
             .padding(start = AppSpacing.small, end = AppSpacing.small, bottom = AppSpacing.small),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.small)
     ) {
-        // ========== Change on Unlock - FIRST PROMINENT OPTION ==========
-        // Prominent card at the top to toggle wallpaper change on screen unlock
-        // This changes both home and lock screen wallpapers when the phone is unlocked
-        val isChangeOnUnlockEnabled = if (wallpaperMode == WallpaperMode.STATIC) {
-            scheduleSettings.homeEffects.enableChangeOnScreenUnlock || scheduleSettings.lockEffects.enableChangeOnScreenUnlock
-        } else {
-            scheduleSettings.liveEffects.enableChangeOnScreenUnlock
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.small),
-            onClick = {
-                val newEnabled = !isChangeOnUnlockEnabled
-                if (wallpaperMode == WallpaperMode.STATIC) {
-                    updateSettingsImmediate(
-                        scheduleSettings.copy(
-                            homeEffects = scheduleSettings.homeEffects.copy(enableChangeOnScreenUnlock = newEnabled),
-                            lockEffects = scheduleSettings.lockEffects.copy(enableChangeOnScreenUnlock = newEnabled)
-                        )
-                    )
-                } else {
-                    updateSettingsImmediate(
-                        scheduleSettings.copy(
-                            liveEffects = scheduleSettings.liveEffects.copy(enableChangeOnScreenUnlock = newEnabled)
-                        )
-                    )
-                }
-            },
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = if (isChangeOnUnlockEnabled)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(AppSpacing.large),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.medium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.ScreenLockPortrait,
-                    contentDescription = null,
-                    tint = if (isChangeOnUnlockEnabled)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.change_on_screen_unlock),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isChangeOnUnlockEnabled)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = stringResource(R.string.change_wallpaper_when_screen_unlocks),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isChangeOnUnlockEnabled)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = if (isChangeOnUnlockEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isChangeOnUnlockEnabled)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
+        // ========== 1. Current Wallpaper Preview - FIRST ITEM ==========
+        if (wallpaperMode == WallpaperMode.STATIC) {
+            CurrentWallpaperPreview(animate = appSettings.animate)
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = AppSpacing.extraSmall))
 
-        // Home and Lock Screen Toggles - Enhanced with better styling
+        // ========== 2. Home and Lock Screen Toggles - SECOND ITEM ==========
         // Only show in Static Mode
         if (wallpaperMode == WallpaperMode.STATIC) {
             Row(
@@ -363,7 +279,7 @@ fun WallpaperScreen(
             }
         }
 
-        // Album Selection - Enhanced with better card styling
+        // ========== 3. Album Selection - THIRD ITEM ==========
         // Only show album selection when at least one screen is enabled
         if (wallpaperMode == WallpaperMode.STATIC && (homeEnabled || lockEnabled)) {
             if (homeEnabled && lockEnabled) {
@@ -643,11 +559,94 @@ fun WallpaperScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = AppSpacing.small))
 
-        // Current Wallpaper Preview (Static Mode Only)
-        if (wallpaperMode == WallpaperMode.STATIC) {
-            CurrentWallpaperPreview(animate = appSettings.animate)
-            HorizontalDivider(modifier = Modifier.padding(vertical = AppSpacing.small))
+        // ========== 4. Change on Screen Unlock - FOURTH ITEM ==========
+        val isChangeOnUnlockEnabled = if (wallpaperMode == WallpaperMode.STATIC) {
+            scheduleSettings.homeEffects.enableChangeOnScreenUnlock || scheduleSettings.lockEffects.enableChangeOnScreenUnlock
+        } else {
+            scheduleSettings.liveEffects.enableChangeOnScreenUnlock
         }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.small),
+            onClick = {
+                val newEnabled = !isChangeOnUnlockEnabled
+                if (wallpaperMode == WallpaperMode.STATIC) {
+                    updateSettingsImmediate(
+                        scheduleSettings.copy(
+                            homeEffects = scheduleSettings.homeEffects.copy(enableChangeOnScreenUnlock = newEnabled),
+                            lockEffects = scheduleSettings.lockEffects.copy(enableChangeOnScreenUnlock = newEnabled)
+                        )
+                    )
+                } else {
+                    updateSettingsImmediate(
+                        scheduleSettings.copy(
+                            liveEffects = scheduleSettings.liveEffects.copy(enableChangeOnScreenUnlock = newEnabled)
+                        )
+                    )
+                }
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = if (isChangeOnUnlockEnabled)
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.large),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.ScreenLockPortrait,
+                    contentDescription = null,
+                    tint = if (isChangeOnUnlockEnabled)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.change_on_screen_unlock),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isChangeOnUnlockEnabled)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(R.string.change_wallpaper_when_screen_unlocks),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isChangeOnUnlockEnabled)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = if (isChangeOnUnlockEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isChangeOnUnlockEnabled)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = AppSpacing.small))
 
         // Effects Section Header
         Text(
