@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ScreenLockPortrait
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -161,6 +163,97 @@ fun WallpaperScreen(
             .padding(start = AppSpacing.small, end = AppSpacing.small, bottom = AppSpacing.small),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.small)
     ) {
+        // ========== Change on Unlock - FIRST PROMINENT OPTION ==========
+        // Prominent card at the top to toggle wallpaper change on screen unlock
+        // This changes both home and lock screen wallpapers when the phone is unlocked
+        val isChangeOnUnlockEnabled = if (wallpaperMode == WallpaperMode.STATIC) {
+            scheduleSettings.homeEffects.enableChangeOnScreenUnlock || scheduleSettings.lockEffects.enableChangeOnScreenUnlock
+        } else {
+            scheduleSettings.liveEffects.enableChangeOnScreenUnlock
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.small),
+            onClick = {
+                val newEnabled = !isChangeOnUnlockEnabled
+                if (wallpaperMode == WallpaperMode.STATIC) {
+                    updateSettingsImmediate(
+                        scheduleSettings.copy(
+                            homeEffects = scheduleSettings.homeEffects.copy(enableChangeOnScreenUnlock = newEnabled),
+                            lockEffects = scheduleSettings.lockEffects.copy(enableChangeOnScreenUnlock = newEnabled)
+                        )
+                    )
+                } else {
+                    updateSettingsImmediate(
+                        scheduleSettings.copy(
+                            liveEffects = scheduleSettings.liveEffects.copy(enableChangeOnScreenUnlock = newEnabled)
+                        )
+                    )
+                }
+            },
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = if (isChangeOnUnlockEnabled)
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.large),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.ScreenLockPortrait,
+                    contentDescription = null,
+                    tint = if (isChangeOnUnlockEnabled)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.change_on_screen_unlock),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isChangeOnUnlockEnabled)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = stringResource(R.string.change_wallpaper_when_screen_unlocks),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isChangeOnUnlockEnabled)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = if (isChangeOnUnlockEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isChangeOnUnlockEnabled)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = AppSpacing.extraSmall))
+
         // Home and Lock Screen Toggles - Enhanced with better styling
         // Only show in Static Mode
         if (wallpaperMode == WallpaperMode.STATIC) {

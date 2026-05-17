@@ -174,6 +174,7 @@ object PreferenceKeys {
 
     // Interactive Effects - Lock (live wallpaper mode only)
     const val LOCK_ENABLE_DOUBLE_TAP = "lock_enable_double_tap"
+    const val LOCK_ENABLE_CHANGE_ON_SCREEN_UNLOCK = "lock_enable_change_on_screen_unlock"
     const val LOCK_ENABLE_PARALLAX = "lock_enable_parallax"
     const val LOCK_PARALLAX_INTENSITY = "lock_parallax_intensity"
 

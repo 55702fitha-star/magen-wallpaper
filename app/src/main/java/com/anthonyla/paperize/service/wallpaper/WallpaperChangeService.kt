@@ -404,7 +404,7 @@ class WallpaperChangeService : Service() {
 
     /**
      * Handle wallpaper change triggered by screen unlock (STATIC mode)
-     * Checks if the homeEffects.enableChangeOnScreenUnlock setting is enabled,
+     * Checks if the homeEffects or lockEffects enableChangeOnScreenUnlock setting is enabled,
      * and if so, changes the wallpaper using the same flow as ACTION_CHANGE_WALLPAPER.
      */
     private fun handleChangeOnUnlock(startId: Int) {
@@ -413,14 +413,17 @@ class WallpaperChangeService : Service() {
                 try {
                     val settings = settingsRepository.getScheduleSettings()
 
-                    // Check if change on screen unlock is enabled for home effects
-                    if (settings.homeEffects.enableChangeOnScreenUnlock) {
-                        Log.d(TAG, "Screen unlock - changing wallpaper (static mode)")
-                        // Determine the screen type based on enabled screens
+                    // Check if change on screen unlock is enabled for any screen
+                    val homeUnlockEnabled = settings.homeEffects.enableChangeOnScreenUnlock
+                    val lockUnlockEnabled = settings.lockEffects.enableChangeOnScreenUnlock
+                    
+                    if (homeUnlockEnabled || lockUnlockEnabled) {
+                        Log.d(TAG, "Screen unlock - changing wallpaper (static mode) home=$homeUnlockEnabled lock=$lockUnlockEnabled")
+                        // Determine the screen type based on which unlock effects are enabled
                         val screenType = when {
-                            settings.homeEnabled && settings.lockEnabled -> ScreenType.BOTH
-                            settings.homeEnabled -> ScreenType.HOME
-                            settings.lockEnabled -> ScreenType.LOCK
+                            homeUnlockEnabled && lockUnlockEnabled -> ScreenType.BOTH
+                            homeUnlockEnabled -> ScreenType.HOME
+                            lockUnlockEnabled -> ScreenType.LOCK
                             else -> {
                                 Log.w(TAG, "No screen enabled for unlock change")
                                 stopSelf(startId)
