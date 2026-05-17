@@ -942,6 +942,20 @@ fun WallpaperScreen(
                         }
                     )
 
+                    // Change wallpaper on screen unlock
+                    SettingSwitch(
+                        title = R.string.change_on_screen_unlock,
+                        description = if (scheduleSettings.liveEffects.enableChangeOnScreenUnlock) null else R.string.change_wallpaper_when_screen_unlocks,
+                        checked = scheduleSettings.liveEffects.enableChangeOnScreenUnlock,
+                        onCheckedChange = { enabled ->
+                            updateSettingsImmediate(
+                                scheduleSettings.copy(
+                                    liveEffects = scheduleSettings.liveEffects.copy(enableChangeOnScreenUnlock = enabled)
+                                )
+                            )
+                        }
+                    )
+
                     // Parallax effect
                     SettingSwitchWithSlider(
                         title = R.string.parallax_effect,
@@ -961,6 +975,63 @@ fun WallpaperScreen(
                             updateSettingsDebounced(
                                 scheduleSettings.copy(
                                     liveEffects = scheduleSettings.liveEffects.copy(parallaxIntensity = homePercent)
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        // Interactive Effects for Static Mode
+        if (wallpaperMode == WallpaperMode.STATIC && hasAlbumSelected) {
+            Card(
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(PaddingValues(horizontal = AppSpacing.small, vertical = AppSpacing.extraSmall))
+            ) {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.large),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.small)
+                ) {
+                    Text(
+                        text = stringResource(R.string.interactive_effects),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = AppSpacing.small),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    // Change wallpaper on screen unlock
+                    SettingSwitch(
+                        title = R.string.change_on_screen_unlock,
+                        description = if (scheduleSettings.homeEffects.enableChangeOnScreenUnlock) null else R.string.change_wallpaper_when_screen_unlocks,
+                        checked = scheduleSettings.homeEffects.enableChangeOnScreenUnlock,
+                        onCheckedChange = { enabled ->
+                            updateSettingsImmediate(
+                                scheduleSettings.copy(
+                                    homeEffects = scheduleSettings.homeEffects.copy(enableChangeOnScreenUnlock = enabled),
+                                    lockEffects = scheduleSettings.lockEffects.copy(enableChangeOnScreenUnlock = enabled)
+                                )
+                            )
+                        }
+                    )
+
+                    // Double-tap to change wallpaper (stores preference for future use)
+                    SettingSwitch(
+                        title = R.string.double_tap_to_change,
+                        description = if (scheduleSettings.homeEffects.enableDoubleTap) null else R.string.double_tap_wallpaper_to_change_it,
+                        checked = scheduleSettings.homeEffects.enableDoubleTap,
+                        onCheckedChange = { enabled ->
+                            updateSettingsImmediate(
+                                scheduleSettings.copy(
+                                    homeEffects = scheduleSettings.homeEffects.copy(enableDoubleTap = enabled),
+                                    lockEffects = scheduleSettings.lockEffects.copy(enableDoubleTap = enabled)
                                 )
                             )
                         }

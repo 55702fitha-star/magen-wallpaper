@@ -56,6 +56,8 @@ import coil3.size.Size
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import net.engawapg.lib.zoomable.rememberZoomState
+import net.engawapg.lib.zoomable.zoomable
 import kotlin.math.min
 
 /**
@@ -323,7 +325,9 @@ private fun WallpaperPreviewBox(
                         .build(),
                     contentDescription = contentDescription,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize()
+                    modifier = Modifier
+                        .matchParentSize()
+                        .zoomable(rememberZoomState())
                 )
             }
         }

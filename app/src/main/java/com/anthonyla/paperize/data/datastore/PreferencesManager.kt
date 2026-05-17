@@ -136,6 +136,7 @@ class PreferencesManager @Inject constructor(
                 enableGrayscale = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_GRAYSCALE)] ?: false,
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.HOME_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_DOUBLE_TAP)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.HOME_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -149,6 +150,7 @@ class PreferencesManager @Inject constructor(
                 enableGrayscale = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_GRAYSCALE)] ?: false,
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.LOCK_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_DOUBLE_TAP)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.LOCK_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -163,6 +165,7 @@ class PreferencesManager @Inject constructor(
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.LIVE_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_DOUBLE_TAP)] ?: false,
                 enableChangeOnScreenOff = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_OFF)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.LIVE_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -199,6 +202,7 @@ class PreferencesManager @Inject constructor(
                 enableGrayscale = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_GRAYSCALE)] ?: false,
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.HOME_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_DOUBLE_TAP)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.HOME_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -212,6 +216,7 @@ class PreferencesManager @Inject constructor(
                 enableGrayscale = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_GRAYSCALE)] ?: false,
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.LOCK_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_DOUBLE_TAP)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.LOCK_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -226,6 +231,7 @@ class PreferencesManager @Inject constructor(
                 grayscalePercentage = prefs[intPreferencesKey(PreferenceKeys.LIVE_GRAYSCALE)] ?: 0,
                 enableDoubleTap = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_DOUBLE_TAP)] ?: false,
                 enableChangeOnScreenOff = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_OFF)] ?: false,
+                enableChangeOnScreenUnlock = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] ?: false,
                 enableParallax = prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_PARALLAX)] ?: false,
                 parallaxIntensity = prefs[intPreferencesKey(PreferenceKeys.LIVE_PARALLAX_INTENSITY)] ?: Constants.DEFAULT_PARALLAX_INTENSITY
             ),
@@ -272,6 +278,7 @@ class PreferencesManager @Inject constructor(
             prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_GRAYSCALE)] = settings.homeEffects.enableGrayscale
             prefs[intPreferencesKey(PreferenceKeys.HOME_GRAYSCALE)] = settings.homeEffects.grayscalePercentage
             prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_DOUBLE_TAP)] = settings.homeEffects.enableDoubleTap
+            prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] = settings.homeEffects.enableChangeOnScreenUnlock
             prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_PARALLAX)] = settings.homeEffects.enableParallax
             prefs[intPreferencesKey(PreferenceKeys.HOME_PARALLAX_INTENSITY)] = settings.homeEffects.parallaxIntensity
 
@@ -285,6 +292,7 @@ class PreferencesManager @Inject constructor(
             prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_GRAYSCALE)] = settings.lockEffects.enableGrayscale
             prefs[intPreferencesKey(PreferenceKeys.LOCK_GRAYSCALE)] = settings.lockEffects.grayscalePercentage
             prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_DOUBLE_TAP)] = settings.lockEffects.enableDoubleTap
+            prefs[booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] = settings.lockEffects.enableChangeOnScreenUnlock
             prefs[booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_PARALLAX)] = settings.lockEffects.enableParallax
             prefs[intPreferencesKey(PreferenceKeys.LOCK_PARALLAX_INTENSITY)] = settings.lockEffects.parallaxIntensity
 
@@ -299,6 +307,7 @@ class PreferencesManager @Inject constructor(
             prefs[intPreferencesKey(PreferenceKeys.LIVE_GRAYSCALE)] = settings.liveEffects.grayscalePercentage
             prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_DOUBLE_TAP)] = settings.liveEffects.enableDoubleTap
             prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_OFF)] = settings.liveEffects.enableChangeOnScreenOff
+            prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_UNLOCK)] = settings.liveEffects.enableChangeOnScreenUnlock
             prefs[booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_PARALLAX)] = settings.liveEffects.enableParallax
             prefs[intPreferencesKey(PreferenceKeys.LIVE_PARALLAX_INTENSITY)] = settings.liveEffects.parallaxIntensity
 
@@ -490,6 +499,7 @@ class PreferencesManager @Inject constructor(
             prefs.remove(booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_GRAYSCALE))
             prefs.remove(intPreferencesKey(PreferenceKeys.HOME_GRAYSCALE))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_DOUBLE_TAP))
+            prefs.remove(booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_PARALLAX))
             prefs.remove(intPreferencesKey(PreferenceKeys.HOME_PARALLAX_INTENSITY))
 
@@ -503,6 +513,7 @@ class PreferencesManager @Inject constructor(
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_GRAYSCALE))
             prefs.remove(intPreferencesKey(PreferenceKeys.LOCK_GRAYSCALE))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_DOUBLE_TAP))
+            prefs.remove(booleanPreferencesKey(PreferenceKeys.HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LOCK_ENABLE_PARALLAX))
             prefs.remove(intPreferencesKey(PreferenceKeys.LOCK_PARALLAX_INTENSITY))
 
@@ -517,6 +528,7 @@ class PreferencesManager @Inject constructor(
             prefs.remove(intPreferencesKey(PreferenceKeys.LIVE_GRAYSCALE))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_DOUBLE_TAP))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_OFF))
+            prefs.remove(booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_CHANGE_ON_SCREEN_UNLOCK))
             prefs.remove(booleanPreferencesKey(PreferenceKeys.LIVE_ENABLE_PARALLAX))
             prefs.remove(intPreferencesKey(PreferenceKeys.LIVE_PARALLAX_INTENSITY))
 

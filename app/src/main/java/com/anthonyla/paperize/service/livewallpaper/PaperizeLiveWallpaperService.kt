@@ -131,6 +131,14 @@ class PaperizeLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
             }
         }
 
+        private val screenOnReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_SCREEN_ON) {
+                    handleScreenOn()
+                }
+            }
+        }
+
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
             Log.d(TAG, "Engine created")
@@ -263,6 +271,15 @@ class PaperizeLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                 screenOffFilter,
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
+
+            // Register screen-on receiver for wallpaper change on screen unlock
+            val screenOnFilter = IntentFilter(Intent.ACTION_SCREEN_ON)
+            ContextCompat.registerReceiver(
+                applicationContext,
+                screenOnReceiver,
+                screenOnFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         }
 
         private fun observeSettings() {
@@ -354,6 +371,11 @@ class PaperizeLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
             } catch (e: Exception) {
                 Log.e(TAG, "Error unregistering screen-off receiver", e)
             }
+            try {
+                applicationContext.unregisterReceiver(screenOnReceiver)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unregistering screen-on receiver", e)
+            }
 
             // Cleanup renderer resources on GL thread
             queueEvent {
@@ -390,6 +412,16 @@ class PaperizeLiveWallpaperService : GLWallpaperService(), LifecycleOwner {
                 if (settings.liveEffects.enableChangeOnScreenOff) {
                     Log.d(TAG, "Screen off - changing wallpaper")
                     // Use forceReload to bypass visibility check and load while screen is off
+                    renderController.forceReloadCurrentArtwork()
+                }
+            }
+        }
+
+        private fun handleScreenOn() {
+            engineScope.launch {
+                val settings = settingsRepository.getScheduleSettings()
+                if (settings.liveEffects.enableChangeOnScreenUnlock) {
+                    Log.d(TAG, "Screen on/unlock - changing wallpaper")
                     renderController.forceReloadCurrentArtwork()
                 }
             }

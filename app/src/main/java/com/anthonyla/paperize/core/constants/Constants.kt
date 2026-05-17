@@ -19,6 +19,7 @@ object Constants {
     const val ACTION_CHANGE_WALLPAPER = "com.magen.wallpaper.ACTION_CHANGE_WALLPAPER"
     const val ACTION_REAPPLY_EFFECTS = "com.magen.wallpaper.ACTION_REAPPLY_EFFECTS"
     const val ACTION_RELOAD_WALLPAPER = "com.magen.wallpaper.ACTION_RELOAD_WALLPAPER"
+    const val ACTION_CHANGE_ON_UNLOCK = "com.magen.wallpaper.ACTION_CHANGE_ON_UNLOCK"
 
     // WorkManager
     const val WORK_NAME_HOME = "wallpaper_change_home"
@@ -167,6 +168,7 @@ object PreferenceKeys {
 
     // Interactive Effects - Home (live wallpaper mode only)
     const val HOME_ENABLE_DOUBLE_TAP = "home_enable_double_tap"
+    const val HOME_ENABLE_CHANGE_ON_SCREEN_UNLOCK = "home_enable_change_on_screen_unlock"
     const val HOME_ENABLE_PARALLAX = "home_enable_parallax"
     const val HOME_PARALLAX_INTENSITY = "home_parallax_intensity"
 
@@ -188,6 +190,7 @@ object PreferenceKeys {
     const val LIVE_GRAYSCALE = "live_grayscale"
     const val LIVE_ENABLE_DOUBLE_TAP = "live_enable_double_tap"
     const val LIVE_ENABLE_CHANGE_ON_SCREEN_OFF = "live_enable_change_on_screen_off"
+    const val LIVE_ENABLE_CHANGE_ON_SCREEN_UNLOCK = "live_enable_change_on_screen_unlock"
     const val LIVE_ENABLE_PARALLAX = "live_enable_parallax"
     const val LIVE_PARALLAX_INTENSITY = "live_parallax_intensity"
 

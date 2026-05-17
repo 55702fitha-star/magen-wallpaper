@@ -63,6 +63,7 @@ class WallpaperChangeService : Service() {
         private const val TAG = "WallpaperChangeService"
         const val ACTION_CHANGE_WALLPAPER = Constants.ACTION_CHANGE_WALLPAPER
         const val ACTION_REAPPLY_EFFECTS = Constants.ACTION_REAPPLY_EFFECTS
+        const val ACTION_CHANGE_ON_UNLOCK = Constants.ACTION_CHANGE_ON_UNLOCK
         const val EXTRA_SCREEN_TYPE = Constants.EXTRA_SCREEN_TYPE
         private const val ERROR_NOTIFICATION_ID = Constants.NOTIFICATION_ID + 1
     }
@@ -98,6 +99,9 @@ class WallpaperChangeService : Service() {
                     ScreenType.fromString(it)
                 } ?: ScreenType.BOTH
                 handleReapplyEffects(screenType, startId)
+            }
+            ACTION_CHANGE_ON_UNLOCK -> {
+                handleChangeOnUnlock(startId)
             }
             else -> {
                 // Unknown or null action — stop immediately to avoid a stuck foreground service
@@ -395,6 +399,44 @@ class WallpaperChangeService : Service() {
             // Current wallpaper not recorded yet — fall back to normal queue advance
             Log.w(TAG, "Reapply failed for lock, falling back to change: ${error.message}")
             changeLockWallpaper(albumId)
+        }
+    }
+
+    /**
+     * Handle wallpaper change triggered by screen unlock (STATIC mode)
+     * Checks if the homeEffects.enableChangeOnScreenUnlock setting is enabled,
+     * and if so, changes the wallpaper using the same flow as ACTION_CHANGE_WALLPAPER.
+     */
+    private fun handleChangeOnUnlock(startId: Int) {
+        serviceScope.launch {
+            wallpaperChangeLock.mutex.withLock {
+                try {
+                    val settings = settingsRepository.getScheduleSettings()
+
+                    // Check if change on screen unlock is enabled for home effects
+                    if (settings.homeEffects.enableChangeOnScreenUnlock) {
+                        Log.d(TAG, "Screen unlock - changing wallpaper (static mode)")
+                        // Determine the screen type based on enabled screens
+                        val screenType = when {
+                            settings.homeEnabled && settings.lockEnabled -> ScreenType.BOTH
+                            settings.homeEnabled -> ScreenType.HOME
+                            settings.lockEnabled -> ScreenType.LOCK
+                            else -> {
+                                Log.w(TAG, "No screen enabled for unlock change")
+                                stopSelf(startId)
+                                return@withLock
+                            }
+                        }
+                        handleChangeWallpaper(screenType, startId)
+                    } else {
+                        Log.d(TAG, "Change on screen unlock not enabled, skipping")
+                        stopSelf(startId)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error handling change on unlock", e)
+                    stopSelf(startId)
+                }
+            }
         }
     }
 

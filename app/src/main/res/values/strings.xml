@@ -83,6 +83,8 @@
   <string name="double_tap_wallpaper_to_change_it">Double-tap wallpaper to change it</string>
   <string name="change_on_screen_off">Change on Screen Off</string>
   <string name="change_wallpaper_when_screen_turns_off">Change wallpaper when screen turns off</string>
+  <string name="change_on_screen_unlock">Change on Screen Unlock</string>
+  <string name="change_wallpaper_when_screen_unlocks">Change wallpaper when screen is unlocked</string>
   <string name="parallax_effect">Parallax Effect</string>
   <string name="wallpaper_moves_with_screen_scroll">Wallpaper moves with screen scroll</string>
   <string name="live_wallpaper_name">Magen Live Wallpaper</string>
