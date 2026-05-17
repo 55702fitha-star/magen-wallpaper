@@ -405,7 +405,11 @@ class WallpaperChangeService : Service() {
     /**
      * Handle wallpaper change triggered by screen unlock (STATIC mode)
      * Checks if the homeEffects or lockEffects enableChangeOnScreenUnlock setting is enabled,
-     * and if so, changes the wallpaper using the same flow as ACTION_CHANGE_WALLPAPER.
+     * and if so, changes the wallpaper directly within the already-held mutex lock.
+     *
+     * IMPORTANT: This method does NOT call handleChangeWallpaper() because that method
+     * also acquires wallpaperChangeLock.mutex, which would cause a deadlock since Kotlin's
+     * Mutex is not reentrant. Instead, we inline the wallpaper change logic here.
      */
     private fun handleChangeOnUnlock(startId: Int) {
         serviceScope.launch {
@@ -417,24 +421,133 @@ class WallpaperChangeService : Service() {
                     val homeUnlockEnabled = settings.homeEffects.enableChangeOnScreenUnlock
                     val lockUnlockEnabled = settings.lockEffects.enableChangeOnScreenUnlock
                     
-                    if (homeUnlockEnabled || lockUnlockEnabled) {
-                        Log.d(TAG, "Screen unlock - changing wallpaper (static mode) home=$homeUnlockEnabled lock=$lockUnlockEnabled")
-                        // Determine the screen type based on which unlock effects are enabled
-                        val screenType = when {
-                            homeUnlockEnabled && lockUnlockEnabled -> ScreenType.BOTH
-                            homeUnlockEnabled -> ScreenType.HOME
-                            lockUnlockEnabled -> ScreenType.LOCK
-                            else -> {
-                                Log.w(TAG, "No screen enabled for unlock change")
-                                stopSelf(startId)
-                                return@withLock
-                            }
-                        }
-                        handleChangeWallpaper(screenType, startId)
-                    } else {
+                    if (!homeUnlockEnabled && !lockUnlockEnabled) {
                         Log.d(TAG, "Change on screen unlock not enabled, skipping")
                         stopSelf(startId)
+                        return@withLock
                     }
+
+                    Log.d(TAG, "Screen unlock - changing wallpaper (static mode) home=$homeUnlockEnabled lock=$lockUnlockEnabled")
+
+                    // Determine the screen type based on which unlock effects are enabled
+                    val screenType = when {
+                        homeUnlockEnabled && lockUnlockEnabled -> ScreenType.BOTH
+                        homeUnlockEnabled -> ScreenType.HOME
+                        lockUnlockEnabled -> ScreenType.LOCK
+                        else -> {
+                            Log.w(TAG, "No screen enabled for unlock change")
+                            stopSelf(startId)
+                            return@withLock
+                        }
+                    }
+
+                    // Inline wallpaper change logic (same as handleChangeWallpaper but without mutex)
+                    when (screenType) {
+                        ScreenType.LIVE -> {
+                            Log.d(TAG, "Live wallpaper - no action needed in service")
+                        }
+                        ScreenType.HOME -> {
+                            val homeAlbumId = settings.homeAlbumId
+                            if (homeAlbumId != null) {
+                                changeHomeWallpaper(homeAlbumId)
+                            } else {
+                                Log.w(TAG, "No home album selected for unlock change")
+                            }
+                        }
+                        ScreenType.LOCK -> {
+                            val lockAlbumId = settings.lockAlbumId
+                            if (lockAlbumId != null) {
+                                changeLockWallpaper(lockAlbumId)
+                            } else {
+                                Log.w(TAG, "No lock album selected for unlock change")
+                            }
+                        }
+                        ScreenType.BOTH -> {
+                            val homeAlbumId = settings.homeAlbumId
+                            val lockAlbumId = settings.lockAlbumId
+
+                            if (homeAlbumId != null && lockAlbumId != null &&
+                                homeAlbumId == lockAlbumId && !settings.separateSchedules) {
+                                val result = changeWallpaperUseCase(homeAlbumId, ScreenType.HOME)
+                                result.onSuccess { bitmap ->
+                                    try {
+                                        if (bitmap.width <= 0 || bitmap.height <= 0) {
+                                            throw IllegalStateException("Invalid bitmap dimensions: ${bitmap.width}x${bitmap.height}")
+                                        }
+                                        if (bitmap.isRecycled) {
+                                            throw IllegalStateException("Bitmap has been recycled")
+                                        }
+
+                                        wallpaperManager.setBitmap(
+                                            bitmap,
+                                            null,
+                                            true,
+                                            WallpaperManager.FLAG_SYSTEM
+                                        )
+                                        Log.d(TAG, "Home wallpaper set in BOTH mode (unlock)")
+
+                                        try {
+                                            val homeCurrentId = wallpaperRepository
+                                                .getCurrentWallpaper(homeAlbumId, ScreenType.HOME)?.id
+                                            if (homeCurrentId != null) {
+                                                if (wallpaperRepository.getNextWallpaperInQueue(
+                                                        homeAlbumId, ScreenType.LOCK) == null) {
+                                                    wallpaperRepository.buildWallpaperQueue(
+                                                        homeAlbumId, ScreenType.LOCK, settings.shuffleEnabled)
+                                                }
+                                                wallpaperRepository.getAndDequeueWallpaper(
+                                                    homeAlbumId, ScreenType.LOCK)
+                                                wallpaperRepository.setCurrentWallpaper(
+                                                    homeAlbumId, ScreenType.LOCK, homeCurrentId)
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.w(TAG, "Failed to sync LOCK queue in BOTH mode (unlock)", e)
+                                        }
+
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error setting wallpaper for both screens (unlock)", e)
+                                    } finally {
+                                        bitmap.recycle()
+                                    }
+
+                                    val lockResult = reapplyEffectsUseCase(homeAlbumId, ScreenType.LOCK)
+                                    lockResult.onSuccess { lockBitmap ->
+                                        try {
+                                            wallpaperManager.setBitmap(
+                                                lockBitmap, null, true, WallpaperManager.FLAG_LOCK
+                                            )
+                                            Log.d(TAG, "Lock wallpaper set separately in BOTH mode (unlock)")
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Error setting lock wallpaper in BOTH mode (unlock)", e)
+                                        } finally {
+                                            lockBitmap.recycle()
+                                        }
+                                    }.onError { error ->
+                                        Log.w(TAG, "Lock rerender failed in BOTH mode (unlock): ${error.message}")
+                                    }
+                                }.onError { error ->
+                                    if (error is EmptyAlbumException) {
+                                        handleEmptyAlbumError(ScreenType.BOTH)
+                                    } else {
+                                        Log.e(TAG, "Error getting wallpaper bitmap (unlock)", error)
+                                    }
+                                }
+                            } else {
+                                if (homeAlbumId != null) {
+                                    changeHomeWallpaper(homeAlbumId)
+                                } else {
+                                    Log.w(TAG, "No home album selected for unlock change")
+                                }
+                                if (lockAlbumId != null) {
+                                    changeLockWallpaper(lockAlbumId)
+                                } else {
+                                    Log.w(TAG, "No lock album selected for unlock change")
+                                }
+                            }
+                        }
+                    }
+
+                    stopSelf(startId)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error handling change on unlock", e)
                     stopSelf(startId)
